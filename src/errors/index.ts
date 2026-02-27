@@ -7,6 +7,7 @@ interface IErrors {
   failedAuthentication: IErrorMessage;
   invalidEmailOrPassword: IErrorMessage;
   tokenExpired: IErrorMessage;
+  invalidInput: IErrorMessage;
 }
 
 export const errorStates: IErrors = {
@@ -39,6 +40,11 @@ export const errorStates: IErrors = {
     message: "Session expired—time to lace up and log in again!",
     http_code: 401,
     error_id: 5,
+  },
+  invalidInput: {
+    message: "Invalid input",
+    error_id: 6,
+    http_code: 400,
   },
 };
 

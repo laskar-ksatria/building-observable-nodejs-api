@@ -36,7 +36,7 @@ npm install
 ### 2. Environment setup
 
 - Create a `.env` file in the project root.
-- Required variables: `PORT`, `MONGGO_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`. Optional: `SENTRY_DSN`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`.
+- Required variables: `PORT`, `MONGODB_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`. Optional: `SENTRY_DSN`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`. App exits on startup if required vars are missing. Redis is used for optional caching (e.g. cache GET /api/user for 60s); if Redis is not set, the app runs without cache.
 - Generate a JWT secret for `PRIVATE_KEY`:
   - Node: `node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"`
   - OpenSSL: `openssl rand -hex 64`
@@ -276,7 +276,8 @@ src/
 │   └── user.route.ts       # /api/user routes
 ├── services/
 │   ├── jwt.ts              # GenerateToken, VerifyToken
-│   └── rate-limit.ts       # Per-route rate limiter
+│   ├── rate-limit.ts       # Per-route rate limiter
+│   └── redis.ts            # Optional cache (getCache, setCache, deleteCache)
 ├── types/
 │   └── index.ts            # Shared interfaces
 ├── app.ts                  # Express app + middleware
@@ -297,7 +298,7 @@ const env = {
   SENTRY_DSN: `${process.env.SENTRY_DSN}`,
   TOKEN_EXPIRED: `${process.env.TOKEN_EXPIRED}`,
   PRIVATE_KEY: `${process.env.PRIVATE_KEY}`,
-  MONGGO_URI: `${process.env.MONGGO_URI}`,
+  MONGODB_URI: process.env.MONGODB_URI!,
   REDIS_PASSWORD: `${process.env.REDIS_PASSWORD}`,
 };
 
@@ -314,26 +315,19 @@ import env from "./env";
 import dbConnect from "./config/mongodb";
 
 if (env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: env.SENTRY_DSN,
-    environment: process.env.NODE_ENV ?? "development",
-  });
+  Sentry.init({ dsn: env.SENTRY_DSN, environment: process.env.NODE_ENV ?? "development" });
 }
 
-const MyServer = async () => {
-  try {
-    server.listen(env.PORT, () => {
-      console.log(`Server running on http://localhost:${env.PORT}`);
-    });
-    process.on("SIGINT", () => { toobusy.shutdown(); process.exit(); });
-    process.on("exit", () => toobusy.shutdown());
-  } catch (error) {
-    console.log(error);
-    process.exit();
-  }
-};
+async function main() {
+  await dbConnect();
+  server.listen(env.PORT, () => {
+    console.log(`Server running on http://localhost:${env.PORT}`);
+  });
+  process.on("SIGINT", () => { toobusy.shutdown(); process.exit(); });
+  process.on("exit", () => toobusy.shutdown());
+}
 
-dbConnect(() => MyServer());
+main().catch((err) => { console.error(err); process.exit(1); });
 ```
 
 ### Database config (`src/config/mongodb.ts`)
@@ -343,22 +337,18 @@ import mongoose from "mongoose";
 import env from "../env";
 import * as Sentry from "@sentry/node";
 
-export default async function dbConnect(callBack: Function) {
+export default async function dbConnect(): Promise<void> {
   try {
-    const uri = env.MONGGO_URI;
-    mongoose.connect(uri);
-    const db = mongoose.connection;
-    db.on("error", () => {
-      Sentry.captureException(new Error("Failed connect mongoDB"));
-      console.error.bind(console, "connection error: ");
+    await mongoose.connect(env.MONGODB_URI);
+    mongoose.connection.on("error", (err) => {
+      Sentry.captureException(err);
+      console.error("MongoDB connection error:", err);
     });
-    db.once("open", function () {
-      console.log("We are connected to mongoDB");
-      callBack();
-    });
+    console.log("Connected to MongoDB");
   } catch (error) {
-    console.log("Error DB: ", error);
+    console.error("Failed to connect to MongoDB:", error);
     Sentry.captureException(error);
+    process.exit(1);
   }
 }
 ```
@@ -439,6 +429,7 @@ import { comparePassword } from "../lib/utils";
 import { IAuthRequest, IUserDocument } from "../types";
 import HttpError, { errorStates } from "../errors";
 import { GenerateToken } from "../services/jwt";
+import { getCache, setCache, CACHE_USER } from "../services/redis";
 
 class UserController {
   static async createUser(req: Request, res: Response, next: NextFunction) {
@@ -477,9 +468,20 @@ class UserController {
     try {
       const userId = req?.decoded?.id;
       if (!userId) throw new HttpError(errorStates.failedAuthentication);
+
+      const idStr = String(userId);
+      const cacheKey = CACHE_USER(idStr);
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        const user = JSON.parse(cached);
+        return res.status(200).json({ success: true, data: { user } });
+      }
+
       const user = await UserModel.findById(userId);
       if (!user) throw new HttpError(errorStates.failedAuthentication);
       const { password: _p, ...safeUser } = user.toObject();
+      await setCache(cacheKey, JSON.stringify(safeUser));
+
       return res.status(200).json({ success: true, data: { user: safeUser } });
     } catch (error) {
       next(error);
@@ -687,6 +689,75 @@ export const VerifyToken = (token: string): TGenerateToken =>
   jwt.verify(token, env.PRIVATE_KEY) as TGenerateToken;
 ```
 
+**Redis (`src/services/redis.ts`) — optional:**
+
+Redis is used as a cache layer. If `REDIS_HOST` is not set, cache is skipped and the app runs without Redis.
+
+```ts
+import Redis from "ioredis";
+import env from "../env";
+
+export const CACHE_USER = (id: string) => `user:${id}`;
+const USER_CACHE_TTL_SEC = 60;
+
+class RedisClient {
+  private static instance: Redis | null = null;
+
+  public static getInstance(): Redis | null {
+    if (this.instance !== null) return this.instance;
+    if (!env.REDIS_HOST || env.REDIS_HOST === "") return null;
+    try {
+      this.instance = new Redis({
+        host: env.REDIS_HOST,
+        port: Number(env.REDIS_PORT) || 6379,
+        password: env.REDIS_PASSWORD || undefined,
+      });
+      this.instance.on("error", (err) => console.error("Redis error:", err));
+      return this.instance;
+    } catch {
+      return null;
+    }
+  }
+}
+
+export const setCache = async (key: string, value: string, expirySeconds = 60): Promise<void> => {
+  const redis = RedisClient.getInstance();
+  if (!redis) return;
+  try {
+    await redis.set(key, value, "EX", expirySeconds);
+  } catch (err) {
+    console.error("Redis setCache error:", err);
+  }
+};
+
+export const getCache = async (key: string): Promise<string | null> => {
+  const redis = RedisClient.getInstance();
+  if (!redis) return null;
+  try {
+    return await redis.get(key);
+  } catch (err) {
+    console.error("Redis getCache error:", err);
+    return null;
+  }
+};
+
+export const deleteCache = async (key: string): Promise<void> => {
+  const redis = RedisClient.getInstance();
+  if (!redis) return;
+  try {
+    await redis.del(key);
+  } catch (err) {
+    console.error("Redis deleteCache error:", err);
+  }
+};
+```
+
+**Sample: cache-aside in `getUser`**
+
+- Try `getCache(CACHE_USER(userId))`. If hit, return cached JSON.
+- Else load user from DB, then `setCache(cacheKey, JSON.stringify(safeUser), 60)` and return.
+- When Redis is not configured, `getCache`/`setCache` no-op; the app still works without cache.
+
 ### Lib – utils (`src/lib/utils.ts`)
 
 ```ts
@@ -761,7 +832,7 @@ export { app, server };
 
 When helping the user run or extend this template, confirm:
 
-- [ ] `.env` exists with at least `PORT`, `MONGGO_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`.
+- [ ] `.env` exists with at least `PORT`, `MONGODB_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`.
 - [ ] MongoDB is reachable (and Redis if used).
 - [ ] `SENTRY_DSN` is set if error monitoring is desired.
 - [ ] After `npm run dev`, `GET /` returns a success message.

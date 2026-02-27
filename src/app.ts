@@ -6,7 +6,6 @@ import helmet from "helmet";
 import { securityMiddleware } from "./middlewares/security";
 import indexRoute from "./routes";
 import { ErrorHandling } from "./middlewares/error-handling";
-import dbConnect from "./config/mongodb";
 
 // Set max latency on 120ms
 toobusy.maxLag(120);

@@ -4,6 +4,7 @@ import { comparePassword } from "../lib/utils";
 import { IAuthRequest, IUserDocument } from "../types";
 import HttpError, { errorStates } from "../errors";
 import { GenerateToken } from "../services/jwt";
+import { getCache, setCache, CACHE_USER } from "../services/redis";
 
 class UserController {
   static async createUser(req: Request, res: Response, next: NextFunction) {
@@ -18,13 +19,11 @@ class UserController {
       return res.status(201).json({
         success: true,
         data: {
-          data: {
-            access_token,
-            user: {
-              _id: user._id,
-              full_name: user.full_name,
-              email: user.email,
-            },
+          access_token,
+          user: {
+            _id: user._id,
+            full_name: user.full_name,
+            email: user.email,
           },
         },
       });
@@ -60,18 +59,26 @@ class UserController {
     try {
       const userId = req?.decoded?.id;
       if (!userId) throw new HttpError(errorStates.failedAuthentication);
-      const user = await UserModel.findById(userId);
 
+      const idStr = String(userId);
+      const cacheKey = CACHE_USER(idStr);
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        const user = JSON.parse(cached);
+        return res.status(200).json({ success: true, data: { user } });
+      }
+
+      const user = await UserModel.findById(userId);
       if (!user) throw new HttpError(errorStates.failedAuthentication);
 
       const { password: _password, ...safeUser } = user.toObject();
+      await setCache(cacheKey, JSON.stringify(safeUser));
 
       return res.status(200).json({
         success: true,
         data: { user: safeUser },
       });
     } catch (error) {
-      console.log(error);
       next(error);
     }
   }

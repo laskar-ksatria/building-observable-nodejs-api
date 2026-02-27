@@ -3,26 +3,20 @@ import env from "../env";
 import * as Sentry from "@sentry/node";
 
 /**
- * Start on local - brew services start mongodb/brew/mongodb-community
- * Stop on local - brew services stop mongodb/brew/mongodb-community
- * @returns
+ * Connect to MongoDB. Use async/await in server.ts.
+ * Local MongoDB: brew services start mongodb-community
  */
-
-export default async function dbConnect(callBack: Function) {
+export default async function dbConnect(): Promise<void> {
   try {
-    const uri = env.MONGGO_URI;
-    mongoose.connect(uri);
-    const db = mongoose.connection;
-    db.on("error", () => {
-      Sentry.captureException(new Error("Failed connect mongoDB"));
-      console.error.bind(console, "connection error: ");
+    await mongoose.connect(env.MONGODB_URI);
+    mongoose.connection.on("error", (err) => {
+      Sentry.captureException(err);
+      console.error("MongoDB connection error:", err);
     });
-    db.once("open", function () {
-      console.log("We are connected to mongoDB");
-      callBack();
-    });
+    console.log("Connected to MongoDB");
   } catch (error) {
-    console.log("Error DB: ", error);
+    console.error("Failed to connect to MongoDB:", error);
     Sentry.captureException(error);
+    process.exit(1);
   }
 }

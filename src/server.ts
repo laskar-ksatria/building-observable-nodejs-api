@@ -12,35 +12,27 @@ if (env.SENTRY_DSN) {
 }
 
 const versionState = [
-  {
-    name: "Version",
-    value: process.version,
-  },
-  {
-    name: "Root",
-    value: "server.ts",
-  },
-  {
-    name: "Port",
-    value: "3005",
-  },
+  { name: "Version", value: process.version },
+  { name: "Root", value: "server.ts" },
+  { name: "Port", value: env.PORT },
 ];
 
-const MyServer = async () => {
-  try {
-    server.listen(env.PORT, () => {
-      console.table(versionState);
-      console.log(`Server running on http://localhost:${env.PORT} 🚀`);
-    });
-    process.on("SIGINT", function () {
-      toobusy.shutdown();
-      process.exit();
-    });
-    process.on("exit", () => toobusy.shutdown());
-  } catch (error) {
-    console.log(error);
-    process.exit();
-  }
-};
+async function main() {
+  await dbConnect();
 
-dbConnect(() => MyServer());
+  server.listen(env.PORT, () => {
+    console.table(versionState);
+    console.log(`Server running on http://localhost:${env.PORT} 🚀`);
+  });
+
+  process.on("SIGINT", () => {
+    toobusy.shutdown();
+    process.exit();
+  });
+  process.on("exit", () => toobusy.shutdown());
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

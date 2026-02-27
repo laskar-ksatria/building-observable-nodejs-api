@@ -10,7 +10,7 @@ Production-ready Node.js REST API template with **Express**, **MongoDB (Mongoose
 - **Security** – Helmet, CORS, NoSQL injection prevention, HTML input validation
 - **Auth** – JWT-based authentication, bcrypt password hashing, password never returned in responses
 - **Resilience** – Rate limiting (per-route), overload detection (toobusy), structured error handling
-- **Stack** – Express 5, TypeScript, Mongoose, Redis-ready, centralized config via `.env`
+- **Stack** – Express 5, TypeScript, Mongoose, Redis-ready (optional), centralized config via `.env`, input validation (Zod)
 
 ---
 
@@ -33,7 +33,7 @@ Production-ready Node.js REST API template with **Express**, **MongoDB (Mongoose
 
 - Node.js (v18+)
 - MongoDB
-- Redis (optional for current setup; env vars prepared)
+- Redis (optional; env vars are prepared; used for caching e.g. GET /api/user when REDIS_HOST is set)
 
 ---
 
@@ -57,18 +57,18 @@ npx skills add laskar-ksatria/building-observable-nodejs-api --skill nodejs-expr
 
 ## Environment Variables
 
-Create a `.env` file in the project root (see `.env.example` if available):
+Create a `.env` file in the project root (copy from `.env.example`):
 
 | Variable        | Description                | Example                    |
 | --------------- | -------------------------- | -------------------------- |
-| `PORT`          | Server port                | `3005`                     |
-| `MONGGO_URI`    | MongoDB connection string  | `mongodb://localhost:27017/app` |
-| `REDIS_HOST`    | Redis host                 | `localhost`                |
-| `REDIS_PORT`    | Redis port                 | `6379`                     |
+| `PORT`          | Server port (required)     | `3005`                     |
+| `MONGODB_URI`   | MongoDB connection string (required) | `mongodb://localhost:27017/app` |
+| `PRIVATE_KEY`   | JWT signing secret (required) | your-secret-key         |
+| `TOKEN_EXPIRED` | JWT expiry (required, e.g. `7d`) | `7d`                |
+| `REDIS_HOST`    | Redis host (optional)      | `localhost`                |
+| `REDIS_PORT`    | Redis port (optional)      | `6379`                     |
 | `REDIS_PASSWORD`| Redis password (optional)  |                            |
-| `SENTRY_DSN`    | Sentry project DSN         | `https://xxx@xxx.ingest.sentry.io/xxx` |
-| `PRIVATE_KEY`   | JWT signing secret         | your-secret-key            |
-| `TOKEN_EXPIRED` | JWT expiry (e.g. `7d`)     | `7d`                       |
+| `SENTRY_DSN`    | Sentry project DSN (optional) | `https://xxx@xxx.ingest.sentry.io/xxx` |
 
 ### Generate Private Key (for JWT)
 
