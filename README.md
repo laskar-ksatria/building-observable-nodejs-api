@@ -50,7 +50,7 @@ npm install
 To use this repo as an agent skill (e.g. in Cursor, Codex, Claude Code):
 
 ```bash
-npx skills add laskar-ksatria/building-observable-nodejs-api --skill nodejs-express-backend-pattern
+npx skills add laskar-ksatria/building-observable-nodejs-api --skill nodejs-express-mongodb-backend-pattern
 ```
 
 ---

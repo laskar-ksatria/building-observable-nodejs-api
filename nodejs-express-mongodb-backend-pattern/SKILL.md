@@ -1,20 +1,20 @@
 ---
-name: nodejs-express-backend-pattern
+name: nodejs-express-mongodb-backend-pattern
 description: Scaffolds or references a production-ready Node.js REST API with Express 5, TypeScript, Mongoose (MongoDB), Redis, Sentry, JWT auth, bcrypt, rate limiting, and centralized error handling. Use when the user wants to start a new observable and resilient backend, needs a Node.js API boilerplate with security and monitoring, or asks to clone or adapt this template repository.
 ---
 
-# Node.js Express Backend Pattern
+# Node.js Express MongoDB Backend Pattern
 
 ## Purpose
 
-This skill helps the agent scaffold, explain, or adapt the **nodejs-express-backend-pattern** template — a Node.js REST API boilerplate with observability, security, and resilience built in. The agent should use it when the user wants a backend with Express, MongoDB, Redis, Sentry, JWT authentication, and production-oriented middleware.
+This skill helps the agent scaffold, explain, or adapt the **nodejs-express-mongodb-backend-pattern** template — a Node.js REST API boilerplate with observability, security, and resilience built in. The agent should use it when the user wants a backend with Express, MongoDB, Redis, Sentry, JWT authentication, and production-oriented middleware.
 
 ## When to use this skill
 
 - The user wants to create a new REST API backend with Node.js and Express.
 - The user asks for a production-ready or "observable" Node.js API template.
 - The user mentions MongoDB/Mongoose, Redis, Sentry, rate limiting, or JWT auth and wants a starter.
-- The user wants to clone, fork, or understand the structure of this repo (nodejs-express-backend-pattern).
+- The user wants to clone, fork, or understand the structure of this repo (nodejs-express-mongodb-backend-pattern).
 - The user needs steps to set up env vars, run the app, or add routes/controllers following this template's conventions.
 
 ## When NOT to use this skill
