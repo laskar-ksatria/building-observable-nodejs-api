@@ -40,9 +40,17 @@ Production-ready Node.js REST API template with **Express**, **MongoDB (Mongoose
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/building-observable-nodejs-api.git
+git clone https://github.com/laskar-ksatria/building-observable-nodejs-api.git
 cd building-observable-nodejs-api
 npm install
+```
+
+### Install as a skill (skills.sh / Agent Skills CLI)
+
+To use this repo as an agent skill (e.g. in Cursor, Codex, Claude Code):
+
+```bash
+npx skills add laskar-ksatria/building-observable-nodejs-api --skill nodejs-express-backend-pattern
 ```
 
 ---
