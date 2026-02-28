@@ -1,7 +1,7 @@
 ---
-name: nodejs-express-mongodb-backend-pattern
+
+## name: nodejs-express-mongodb-backend-pattern
 description: Scaffolds or references a production-ready Node.js REST API with Express 5, TypeScript, Mongoose (MongoDB), Redis, Sentry, JWT auth, bcrypt, rate limiting, and centralized error handling. Use when the user wants to start a new observable and resilient backend, needs a Node.js API boilerplate with security and monitoring, or asks to clone or adapt this template repository.
----
 
 # Node.js Express MongoDB Backend Pattern
 
@@ -825,16 +825,17 @@ export { app, server };
 
 ## Repository and docs
 
-- **GitHub:** https://github.com/laskar-ksatria/building-observable-nodejs-api
+- **GitHub:** [https://github.com/laskar-ksatria/building-observable-nodejs-api](https://github.com/laskar-ksatria/building-observable-nodejs-api)
 - Full setup, env table, and API overview: see the repository README.
 
 ## Validation / done checklist
 
 When helping the user run or extend this template, confirm:
 
-- [ ] `.env` exists with at least `PORT`, `MONGODB_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`.
-- [ ] MongoDB is reachable (and Redis if used).
-- [ ] `SENTRY_DSN` is set if error monitoring is desired.
-- [ ] After `npm run dev`, `GET /` returns a success message.
-- [ ] Auth routes (`/api/user/register`, `/api/user/login`, `GET /api/user`) respond correctly.
-- [ ] New resources follow the convention: types -> model -> controller -> route -> mount in index.
+- `.env` exists with at least `PORT`, `MONGODB_URI`, `PRIVATE_KEY`, `TOKEN_EXPIRED`.
+- MongoDB is reachable (and Redis if used).
+- `SENTRY_DSN` is set if error monitoring is desired.
+- After `npm run dev`, `GET /` returns a success message.
+- Auth routes (`/api/user/register`, `/api/user/login`, `GET /api/user`) respond correctly.
+- New resources follow the convention: types -> model -> controller -> route -> mount in index.
+
