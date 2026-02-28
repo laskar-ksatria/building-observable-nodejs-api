@@ -1,7 +1,7 @@
 ---
-
-## name: nodejs-express-mongodb-backend-pattern
+name: nodejs-express-mongodb-backend-pattern
 description: Scaffolds or references a production-ready Node.js REST API with Express 5, TypeScript, Mongoose (MongoDB), Redis, Sentry, JWT auth, bcrypt, rate limiting, and centralized error handling. Use when the user wants to start a new observable and resilient backend, needs a Node.js API boilerplate with security and monitoring, or asks to clone or adapt this template repository.
+---
 
 # Node.js Express MongoDB Backend Pattern
 
